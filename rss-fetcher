@@ -9,16 +9,12 @@ import feedparser
 
 class RSSFetcher:
 
-    def __init__(self, dest_dir='', opts={}):
-        self.dest_dir = dest_dir
-        self.db_file = self.path('rss', 'rss-latest.py')
+    def __init__(self, opts):
+        self.opts = opts
+        self.db_file = self.path('rss-latest.py')
         self.db = {}
         self.url = None
         self.log_started = False
-        for opt, default in (
-            ('verbose', 0), ('force', False), ('dry_run', False)
-        ):
-            setattr(self, opt, opts.get(opt, default))
         try:
             db = open(self.db_file).read()
         except (IOError, OSError):
@@ -33,12 +29,12 @@ class RSSFetcher:
         self.close()
 
     def close(self):
-        if not self.dry_run and self.db_file:
+        if not self.opts.dry_run and self.db_file:
             open(self.db_file, 'w').write(repr(self.db).replace('), ', '),\n ') + '\n')
             self.db_file = None
 
     def log(self, msg, level=0):
-        if level > self.verbose:
+        if level > self.opts.debug:
             return
         if not self.log_started:
             print time.asctime()
@@ -51,7 +47,7 @@ class RSSFetcher:
             pprint.pprint(msg)
 
     def path(self, *suffixes):
-        return os.path.join(self.dest_dir, *suffixes)
+        return os.path.join(self.opts.dest_dir, *suffixes)
 
     def fetch(self, url, patterns=[]):
         self.latest_updated = self.db.setdefault(url, 0)
@@ -62,7 +58,7 @@ class RSSFetcher:
             self.log('! feed object has no status attribute:', 1)
             return self.log(feed, 1)
         if feed.status == 301:      # permanently redirected
-            self.log('! Redirect: %s\n  ==>       %s' % (url, feed.href))
+            self.log('* Redirect: %s\n  ==>       %s' % (url, feed.href))
         elif feed.status == 410:    # gone
             self.log('! Gone: %s' % url)
             if url in self.db:
@@ -83,8 +79,8 @@ class RSSFetcher:
     def get_entry(self, entry):
         self.log(entry, 2)
         tm = time.mktime(entry.updated_parsed)
-        if not self.force and tm <= self.latest_updated:
-            return self.log('* Old entry, already looked at earlier: %s' % entry.title, 1)
+        if not self.opts.force and tm <= self.latest_updated:
+            return self.log('! Old entry, already looked at earlier: %s' % entry.title, 1)
         if self.new_latest < tm:
             self.log(entry.title)
             self.new_latest = tm
@@ -98,28 +94,29 @@ class RSSFetcher:
         dest = enclosure.href.split('/')[-1]
         if not dest.endswith('.torrent'):
             dest += '.torrent'
-        destfile = self.path('rss', dest)
-        self.log('! Downloading %s' % dest, 1)
+        destfile = self.path(dest)
+        self.log('* Downloading %s' % dest, 1)
         torrent = open(destfile, 'w')
         torrent.write(urllib.urlopen(enclosure.href).read())
         torrent.close()
 
 if __name__ == '__main__':
-    args = sys.argv[1:]
-    if not args:
-        print """Usage: %s [-v]... [-f] [-d] <feed-url> <filter-regex>...
-
-Options:
-    -v  be increasingly verbose
-    -f  force; ignores timestamp
-    -d  dry run; don't download the enclosure or update timestamps\n""" % sys.argv[0]
-        sys.exit(1)
-    opts = dict(
-        verbose = args.count('-v'),
-        force = ('-f' in args),
-        dry_run = ('-d' in args),
+    import optparse
+    p = optparse.OptionParser(usage='Usage: %prog [options] <feed-url> [<filter-regex>...]')
+    p.add_option('-d', '--dest-dir',
+        help='save enclosures and the timestamps in DEST', metavar='DEST'
     )
-    f = RSSFetcher(os.path.join(os.path.expanduser('~'), 'Downloads', '1torrents'), opts)
-    args = [a for a in args if not a.startswith('-')]
+    p.add_option('-f', '--force', action='store_true',
+        help='redo entries that have already been seen'
+    )
+    p.add_option('-D', '--debug', type='int', help='set the logging level')
+    p.add_option('-n', '--dry-run', action='store_true',
+        help="don't download any enclosures or update timestamps"
+    )
+    p.set_defaults(dest_dir='.', force=False, debug=0, dry_run=False)
+    opts, args = p.parse_args()
+    if not args:
+        p.error('Feed URL missing')
+    f = RSSFetcher(opts)
     f.fetch(args[0], args[1:])
     f.close()
