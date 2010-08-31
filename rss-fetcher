@@ -94,46 +94,6 @@ class RSSFetcher:
             ]:
                 self.download(enclosure)
 
-    def submit_to_transmission(self, enclosure):
-        """Submit the enclosure to the Transmission RPC interface"""
-        conn = httplib.HTTPConnection('localhost:9091')
-        # the href must not be URL-encoded, or Transmission will barf
-        url = '/transmission/rpc?method=torrent-add&filename=' + enclosure.href
-        headers = {'User-Agent': 'fetcher/0.3 (+http://drbeat.li/py/)'}
-        self.log('Submitting "%s" to Transmission' % enclosure.href)
-        self.log('* Url: %s' % url, 1)
-        if self.dry_run:
-            return
-        while True:
-            try:
-                self.log('* Headers: %r' % headers, 2)
-                conn.request('GET', url, headers=headers)
-                response = conn.getresponse()
-                self.log(response.getheaders(), 3)
-                reply = response.read()
-                self.log(reply, 3)
-            except (httplib.HTTPException, socket.error), e:
-                return self.log('! during submission: %s' % e)
-            if response.status == 200:      # ok
-                break
-            elif response.status == 409:    # Transmission's CSRF avoidance
-                h = 'X-Transmission-Session-Id'
-                headers[h] = response.getheader(h)
-            else:                           # error
-                return self.log('! %d %s\n%s\n\n%s' % (
-                    response.status, response.reason,
-                    '\n'.join(['%s: %s' % hv for hv in response.getheaders()]),
-                    reply
-                ))
-        try:
-            reply = eval(reply, {}, {})
-        except Exception, e:
-            self.log(reply)
-            reply = {'result': 'exception: %s' % e}
-        if reply['result'] == 'success':
-            return True
-        self.log(reply)
-
     def download(self, enclosure):
         dest = enclosure.href.split('/')[-1]
         if not dest.endswith('.torrent'):
