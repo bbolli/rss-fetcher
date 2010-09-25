@@ -89,6 +89,7 @@ class RSSFetcher:
                 e for e in entry.get('enclosures', []) if 'torrent' in e.type
             ]:
                 self.download(enclosure)
+                break   # the first one is enough!
 
     def download(self, enclosure):
         dest = enclosure.href.split('/')[-1]
