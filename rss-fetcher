@@ -3,93 +3,31 @@
 # fetches an RSS feed with enclosures, and submits any torrents found
 # to the Transmission bittorrent client.
 
-import sys, os, re, socket, httplib, urllib, time, pprint
-import feedparser
+import re, urllib
+
+from basefetcher import BaseRSSFetcher
 
 
-class RSSFetcher:
+class RSSFetcher(BaseRSSFetcher):
 
-    def __init__(self, opts):
-        self.opts = opts
-        self.db_file = self.path('rss-latest.py')
-        self.db = {}
-        self.url = None
-        self.log_started = False
-        try:
-            db = open(self.db_file).read()
-        except (IOError, OSError):
-            db = '{}'
-        try:
-            self.db = eval(db, {}, {})
-        except Exception, e:
-            self.log(repr(e))
-            sys.exit(2)
+    def __init__(self, db_file=None):
+        BaseRSSFetcher.__init__(self, db_file)
+        self.dest_dir = '.'
+        self.patterns = []
 
-    def __del__(self):
-        self.close()
-
-    def close(self):
-        if not self.opts.dry_run and self.db_file:
-            open(self.db_file, 'w').write(repr(self.db).replace('), ', '),\n ') + '\n')
-            self.db_file = None
-
-    def log(self, msg, level=0):
-        if level > self.opts.debug:
-            return
-        if not self.log_started:
-            print time.asctime()
-            if self.url:
-                print self.url
-            self.log_started = True
-        if type(msg) in (str, unicode):
-            print msg
-        else:
-            pprint.pprint(msg)
-
-    def path(self, *suffixes):
-        return os.path.join(self.opts.dest_dir, *suffixes)
-
-    def fetch(self, url, patterns=[]):
-        self.latest_updated = self.db.setdefault(url, 0)
-        self.url = url
-        feed = feedparser.parse(url)
-        self.log(feed, 3)
-        if not hasattr(feed, 'status'):
-            self.log('! feed object has no status attribute:', 1)
-            return self.log(feed, 1)
-        if feed.status == 301:      # permanently redirected
-            self.log('* Redirect: %s\n  ==>       %s' % (url, feed.href))
-        elif feed.status == 410:    # gone
-            self.log('! Gone: %s' % url)
-            if url in self.db:
-                del self.db[url]
-            return
-        elif feed.status != 200:
-            self.log('* Status: %d' % feed.status)
-        self.new_latest = self.latest_updated
-        if patterns:
-            entries = [e for e in feed.entries for p in patterns if re.search(p, e.title)]
-        else:
-            entries = feed.entries
-        for entry in entries:
-            self.get_entry(entry)
-        self.db[url] = self.new_latest
-        self.url = None
-
-    def get_entry(self, entry):
-        self.log(entry, 2)
-        tm = time.mktime(entry.updated_parsed)
-        if not self.opts.force and tm <= self.latest_updated:
-            return self.log('! Old entry, already looked at earlier: %s' % entry.title, 1)
-        if self.new_latest < tm:
-            self.log(entry.title)
-            self.new_latest = tm
-            self.log('* Updating latest date to %s' % time.ctime(tm), 1)
-            for enclosure in [
-                e for e in entry.get('enclosures', []) if 'torrent' in e.type
-            ]:
+    def handle_entry(self, entry):
+        if self.patterns:
+            for p in self.patterns:
+                if re.search(p, entry.title):
+                    break
+            else:
+                self.log('! no pattern match for title "%s"' % entry.title, 1)
+                return False
+        self.log(entry, 3)
+        for enclosure in entry.get('enclosures', []):
+            if 'torrent' in enclosure.type:
                 self.download(enclosure)
-                break   # the first one is enough!
+                return True # the first one is enough!
 
     def download(self, enclosure):
         dest = enclosure.href.split('/')[-1]
@@ -118,6 +56,14 @@ if __name__ == '__main__':
     opts, args = p.parse_args()
     if not args:
         p.error('Feed URL missing')
-    f = RSSFetcher(opts)
-    f.fetch(args[0], args[1:])
-    f.close()
+
+    f = RSSFetcher()
+    f.dest_dir = opts.dest_dir
+    f.force = opts.force
+    f.debug = opts.debug
+    f.dry_run = opts.dry_run
+    f.patterns = args[1:]
+    try:
+        f.fetch(args[0])
+    finally:
+        f.close()
