@@ -82,7 +82,7 @@ class BaseRSSFetcher:
     def fetch(self, url):
         self.latest_updated = self.db.setdefault(url, 0)
         self.url = url
-        feed = feedparser.parse(url)
+        self.parsed_feed = feed = feedparser.parse(url)
         if not hasattr(feed, 'status'):
             self.log('! feed object has no status attribute:', 1)
             return self.log(feed, 1)
