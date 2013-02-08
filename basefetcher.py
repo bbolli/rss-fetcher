@@ -72,7 +72,7 @@ class BaseRSSFetcher:
                 print self.url
             self.log_started = True
         if type(msg) in (str, unicode):
-            print msg
+            print msg.encode('utf-8')
         else:
             pprint.pprint(msg)
 
