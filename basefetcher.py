@@ -104,8 +104,9 @@ class BaseRSSFetcher:
             elif self.latest_updated < tm:
                 if self.handle_entry(entry):
                     self.log(entry.title)
-                    self.new_latest = max(self.new_latest, tm)
-                    self.log('* Updating latest date to %s' % time.ctime(tm), 1)
+                    if tm > self.new_latest:
+                        self.new_latest = tm
+                        self.log('* Updating latest date to %s' % time.ctime(tm), 1)
         self.db[url] = self.new_latest
         self.url = None
 
