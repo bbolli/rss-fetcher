@@ -80,7 +80,8 @@ class BaseRSSFetcher:
         return os.path.join(self.dest_dir, *suffixes)
 
     def fetch(self, url):
-        self.latest_updated = self.db.setdefault(url, 0)
+        self.latest_updated = self.db.setdefault(url, 0) \
+            if not self.force else 0
         self.url = url
         self.parsed_feed = feed = feedparser.parse(url)
         if not hasattr(feed, 'status'):
