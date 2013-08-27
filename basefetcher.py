@@ -8,7 +8,7 @@ so only unhandled entries are processed by default.
 Subclasses should implement the handle_entry(self, entry) method.
 It is called with a feedparser entry dict as argument."""
 
-import os, errno, time, pprint
+import sys, os, errno, time, pprint
 import feedparser
 
 XDG_DATA_HOME = '~/.local/share'
@@ -72,9 +72,9 @@ class BaseRSSFetcher:
                 print self.url
             self.log_started = True
         if type(msg) in (str, unicode):
-            print msg.encode('utf-8')
+            sys.stderr.write(msg.encode('utf-8') + '\n')
         else:
-            pprint.pprint(msg)
+            pprint.pprint(msg, sys.stderr)
 
     def path(self, *suffixes):
         return os.path.join(self.dest_dir, *suffixes)
