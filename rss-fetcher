@@ -3,7 +3,7 @@
 # fetches an RSS feed with enclosures, and submits any torrents found
 # to the Transmission bittorrent client.
 
-import re, urllib
+import os, re, urllib
 
 from basefetcher import BaseRSSFetcher
 
@@ -40,6 +40,9 @@ class RSSFetcher(BaseRSSFetcher):
         torrent = open(destfile, 'w')
         torrent.write(urllib.urlopen(enclosure.href).read())
         torrent.close()
+
+    def path(self, *suffixes):
+        return os.path.join(self.dest_dir, *suffixes)
 
 if __name__ == '__main__':
     import optparse

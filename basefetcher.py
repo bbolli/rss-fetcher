@@ -76,9 +76,6 @@ class BaseRSSFetcher:
         else:
             pprint.pprint(msg, sys.stderr)
 
-    def path(self, *suffixes):
-        return os.path.join(self.dest_dir, *suffixes)
-
     def fetch(self, url):
         self.latest_updated = self.db.setdefault(url, 0) \
             if not self.force else 0
