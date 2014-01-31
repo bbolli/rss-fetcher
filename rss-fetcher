@@ -37,9 +37,13 @@ class RSSFetcher(BaseRSSFetcher):
             dest += '.torrent'
         destfile = self.path(dest)
         self.log('* Downloading %s' % dest, 1)
-        torrent = open(destfile, 'w')
-        torrent.write(urllib.urlopen(enclosure.href).read())
-        torrent.close()
+        resp = urllib.urlopen(enclosure.href)
+        content_type = resp.headers.get('content-type', '')
+        if 'torrent' in content_type:
+            with open(destfile, 'w') as torrent:
+                torrent.write(resp.read())
+        else:
+            self.log('! downloaded file is not a torrent file: "%s"' % content_type)
 
     def path(self, *suffixes):
         return os.path.join(self.dest_dir, *suffixes)
