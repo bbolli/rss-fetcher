@@ -4,6 +4,7 @@
 # to the Transmission bittorrent client.
 
 import os, re, urllib
+urllib.URLopener.version = "Mozilla/5.0 (compatible)"
 
 from basefetcher import BaseRSSFetcher
 
