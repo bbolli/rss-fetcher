@@ -3,7 +3,10 @@
 # fetches an RSS feed with enclosures, and submits any torrents found
 # to the Transmission bittorrent client.
 
-import os, re, urllib
+import os
+import re
+import urllib
+
 urllib.URLopener.version = "Mozilla/5.0 (compatible)"
 
 from basefetcher import BaseRSSFetcher
@@ -30,7 +33,7 @@ class RSSFetcher(BaseRSSFetcher):
         for enclosure in entry.get('enclosures', []):
             if 'torrent' in enclosure.type:
                 self.download(entry.title, enclosure)
-                return True # the first one is enough!
+                return True  # the first one is enough!
 
     def download(self, title, enclosure):
         dest = title.replace(os.sep, ' ').strip()

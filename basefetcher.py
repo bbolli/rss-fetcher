@@ -8,7 +8,12 @@ so only unhandled entries are processed by default.
 Subclasses should implement the handle_entry(self, entry) method.
 It is called with a feedparser entry dict as argument."""
 
-import sys, os, errno, time, pprint
+import sys
+import os
+import errno
+import time
+import pprint
+
 import feedparser
 
 XDG_DATA_HOME = '~/.local/share'
