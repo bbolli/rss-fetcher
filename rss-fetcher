@@ -21,10 +21,7 @@ class RSSFetcher(BaseRSSFetcher):
 
     def handle_entry(self, entry):
         if self.patterns:
-            for p in self.patterns:
-                if re.search(p, entry.title):
-                    break
-            else:
+            if not all(re.search(p, entry.title) for p in self.patterns):
                 self.log('! no pattern match for title "%s"' % entry.title, 1)
                 return False
         self.log(entry, 3)
