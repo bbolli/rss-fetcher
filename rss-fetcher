@@ -31,6 +31,10 @@ class RSSFetcher(BaseRSSFetcher):
             if enclosure.rel == 'enclosure' and 'torrent' in enclosure.type:
                 self.download(entry.title, enclosure.href)
                 return True  # the first one is enough!
+        # there were no enclosures; check the link
+        if link.startswith('http://') or link.startswith('https://'):
+            self.download(entry.title, link)
+            return True
 
     def download(self, title, url):
         dest = title.replace(os.sep, ' ').strip()
