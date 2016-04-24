@@ -27,8 +27,8 @@ class RSSFetcher(BaseRSSFetcher):
         self.log(entry, 3)
         if self.dry_run:
             return True
-        for enclosure in entry.get('enclosures', []):
-            if 'torrent' in enclosure.type:
+        for enclosure in entry.get('links', []):
+            if enclosure.rel == 'enclosure' and 'torrent' in enclosure.type:
                 self.download(entry.title, enclosure.href)
                 return True  # the first one is enough!
 
