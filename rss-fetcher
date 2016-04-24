@@ -29,16 +29,16 @@ class RSSFetcher(BaseRSSFetcher):
             return True
         for enclosure in entry.get('enclosures', []):
             if 'torrent' in enclosure.type:
-                self.download(entry.title, enclosure)
+                self.download(entry.title, enclosure.href)
                 return True  # the first one is enough!
 
-    def download(self, title, enclosure):
+    def download(self, title, url):
         dest = title.replace(os.sep, ' ').strip()
         if not dest.endswith('.torrent'):
             dest += '.torrent'
         destfile = self.path(dest)
         self.log('* Downloading %s' % dest, 1)
-        resp = urllib.urlopen(enclosure.href)
+        resp = urllib.urlopen(url)
         content_type = resp.headers.get('content-type', '')
         if 'torrent' in content_type:
             with open(destfile, 'w') as torrent:
